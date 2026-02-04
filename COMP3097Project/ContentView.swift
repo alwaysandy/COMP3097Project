@@ -20,44 +20,100 @@ struct ContentView: View {
     }
 }
 
-// Placeholder Views
 struct SafariView: UIViewControllerRepresentable {
     let url: URL
 
     func makeUIViewController(context: Context) -> SFSafariViewController {
-        // Create and return the SFSafariViewController instance
         return SFSafariViewController(url: url)
     }
 
-    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {
-        // No updates needed for a basic implementation
-    }
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
-struct HomeView: View {
-    @State private var showSafari: Bool = false
-    let url = URL(string: "https://www.apple.com")!
+struct WebDestination: Identifiable {
+    let id = UUID()
+    let url: URL
+}
 
+// Placeholder Views
+struct HomeView: View {
+    @State private var selectedDestination: WebDestination? = nil
     var body: some View {
-        Button("Open Apple Website") {
-            showSafari.toggle()
-        }
-        .fullScreenCover(isPresented: $showSafari) {
-            SafariView(url: url)
-                .ignoresSafeArea()
+        NavigationStack {
+            VStack(alignment: .leading) {
+                Text("Hacker News Client")
+                    .font(.title)
+                Article(
+                    title: "Reddit",
+                    points: 20,
+                    articleURL: URL(string: ("https://www.reddit.com/"))!,
+                    selectedDestination: $selectedDestination
+                )
+                Article(
+                    title: "Ebay",
+                    points: 5000,
+                    articleURL: URL(string: ("https://www.ebay.com/"))!,
+                    selectedDestination: $selectedDestination
+                )
+                Spacer()
+            }
+            .padding()
+            .sheet(item: $selectedDestination) { destination in
+                SafariView(url: destination.url)
+                    .ignoresSafeArea()
+                    .interactiveDismissDisabled(false)
+            }
         }
     }
 }
 
 struct ReadingListView: View {
     var body: some View {
-        Text("Saved links for later.")
+        VStack {
+            Text("Saved links for later.")
+            Spacer()
+        }
     }
 }
 
 struct SettingsView: View {
     var body: some View {
         Text("Configure your settings.")
+    }
+}
+
+struct Article: View {
+    var title: String
+    var points: Int
+    var articleURL: URL
+    @Binding var selectedDestination: WebDestination?
+    var body: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                Text(String(points))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            NavigationLink("Comments") {
+                CommentsView()
+            }
+            .padding(.leading, 8)
+        }
+        .padding()
+        .background(Color.gray.opacity(0.2))
+        .cornerRadius(12)
+        .onTapGesture {
+            selectedDestination = WebDestination(url: articleURL)
+        }
+    }
+}
+
+struct CommentsView: View {
+    var body: some View {
+        Text("Comments.")
     }
 }
 
