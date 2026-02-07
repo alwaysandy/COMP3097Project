@@ -58,10 +58,8 @@ struct HomeView: View {
                 Spacer()
             }
             .padding()
-            .sheet(item: $selectedDestination) { destination in
+            .fullScreenCover(item: $selectedDestination) { destination in
                 SafariView(url: destination.url)
-                    .ignoresSafeArea()
-                    .interactiveDismissDisabled(false)
             }
         }
     }
@@ -98,7 +96,7 @@ struct Article: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             NavigationLink("Comments") {
-                CommentsView()
+                CommentsView(title: title)
             }
             .padding(.leading, 8)
         }
@@ -112,8 +110,9 @@ struct Article: View {
 }
 
 struct CommentsView: View {
+    var title: String
     var body: some View {
-        Text("Comments.")
+        Text(title)
     }
 }
 
