@@ -4,9 +4,9 @@ import SafariServices
 struct ContentView: View {
     var body: some View {
         TabView {
-            HomeView()
+            ArticlesView()
                 .tabItem {
-                    Label("Home", systemImage: "house.fill")
+                    Label("Articles", systemImage: "house.fill")
                 }
             ReadingListView()
                 .tabItem {
@@ -36,7 +36,7 @@ struct WebDestination: Identifiable {
 }
 
 // Placeholder Views
-struct HomeView: View {
+struct ArticlesView: View {
     @State private var selectedDestination: WebDestination? = nil
     var body: some View {
         NavigationStack {
@@ -68,15 +68,37 @@ struct HomeView: View {
 struct ReadingListView: View {
     var body: some View {
         VStack {
-            Text("Saved links for later.")
+            Text("Reading List")
+                .font(.title)
             Spacer()
         }
     }
 }
 
 struct SettingsView: View {
+    @State private var agreed = false
+    @State private var dark = false
+
     var body: some View {
-        Text("Configure your settings.")
+        VStack {
+            Text("Settings")
+                .font(.title)
+            HStack {
+                Toggle("I agree to the terms and conditions", isOn: $agreed)
+                    .padding()
+            }
+            .background(Color.gray.opacity(0.2))
+            .cornerRadius(12)
+            HStack {
+                Toggle("Toggle Dark Mode", isOn: $dark)
+                    .padding()
+            }
+            .background(Color.gray.opacity(0.2))
+            .cornerRadius(12)
+            Spacer()
+            Spacer()
+        }
+        .padding()
     }
 }
 
@@ -112,7 +134,14 @@ struct Article: View {
 struct CommentsView: View {
     var title: String
     var body: some View {
-        Text(title)
+        VStack(alignment: .leading) {
+            Text(title)
+                .font(.headline)
+            Text("This is a comment!")
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 16)
     }
 }
 
