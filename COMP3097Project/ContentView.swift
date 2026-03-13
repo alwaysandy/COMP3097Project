@@ -143,35 +143,22 @@ struct WebDestination: Identifiable {
     let url: URL
 }
 
-// Placeholder Views
-struct ArticlesView: View {
-    @State private var selectedDestination: WebDestination? = nil
-    var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading) {
-                Text("Hacker News Client")
-                    .font(.title)
-                Article(
-                    title: "Reddit",
-                    points: 20,
-                    articleURL: URL(string: ("https://www.reddit.com/"))!,
-                    selectedDestination: $selectedDestination
-                )
-                Article(
-                    title: "Ebay",
-                    points: 5000,
-                    articleURL: URL(string: ("https://www.ebay.com/"))!,
-                    selectedDestination: $selectedDestination
-                )
-                Spacer()
-            }
-            .padding()
-            .fullScreenCover(item: $selectedDestination) { destination in
-                SafariView(url: destination.url)
-            }
-        }
+// MARK: - Articles
+
+@MainActor
+class ArticlesViewModel: ObservableObject {
+    @Published var stories: [HNStory] = []
+    @Published var selectedDestination: WebDestination?
+
+    func load() async {
+        stories = (try? await HackerNewsService.shared.fetchTopStories()) ?? []
+    }
+
+    func selectStory(_ story: HNStory) {
+        selectedDestination = WebDestination(url: story.articleURL ?? story.hackerNewsURL)
     }
 }
+
 
 struct ReadingListView: View {
     var body: some View {
@@ -212,36 +199,6 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Articles
-
-struct Article: View {
-    var title: String
-    var points: Int
-    var articleURL: URL
-    @Binding var selectedDestination: WebDestination?
-    var body: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                Text(String(points))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            NavigationLink("Comments") {
-                CommentsView(title: title)
-            }
-            .padding(.leading, 8)
-        }
-        .padding()
-        .background(Color.gray.opacity(0.2))
-        .cornerRadius(12)
-        .onTapGesture {
-            selectedDestination = WebDestination(url: articleURL)
-        }
-    }
-}
 
 // MARK: - Comments
 
