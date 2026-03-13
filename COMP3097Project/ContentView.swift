@@ -1,12 +1,14 @@
 import SwiftUI
 import SafariServices
 
+// MARK: - Root
+
 struct ContentView: View {
     var body: some View {
         TabView {
             ArticlesView()
                 .tabItem {
-                    Label("Articles", systemImage: "house.fill")
+                    Label("Articles", systemImage: "newspaper.fill")
                 }
             ReadingListView()
                 .tabItem {
@@ -19,6 +21,8 @@ struct ContentView: View {
         }
     }
 }
+
+// MARK: - Safari
 
 struct SafariView: UIViewControllerRepresentable {
     let url: URL
@@ -75,6 +79,8 @@ struct ReadingListView: View {
     }
 }
 
+// MARK: - Settings
+
 struct SettingsView: View {
     @State private var agreed = false
     @State private var dark = false
@@ -101,6 +107,8 @@ struct SettingsView: View {
         .padding()
     }
 }
+
+// MARK: - Articles
 
 struct Article: View {
     var title: String
@@ -130,6 +138,8 @@ struct Article: View {
         }
     }
 }
+
+// MARK: - Comments
 
 struct CommentsView: View {
     var title: String
