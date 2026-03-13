@@ -48,6 +48,32 @@ struct HNComment: Identifiable, Decodable {
     }
 }
 
+// MARK: - Services
+
+@MainActor
+class HackerNewsService: ObservableObject{
+    static let shared = HackerNewsService()
+    private let baseURL = "https://hacker-news.firebaseio.com/v0"
+
+    private func fetchTopStoryIDs(limit: Int) async throws -> [Int] {
+        let url = URL(string: "\(baseURL)/topstories.json")!
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try Array(JSONDecoder().decode([Int].self, from: data).prefix(limit))
+    }
+
+    private func fetchStory(id: Int) async throws -> HNStory {
+        let url = URL(string: "\(baseURL)/item/\(id).json")!
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(HNStory.self, from: data)
+    }
+
+    private func fetchComment(id: Int) async throws -> HNComment {
+        let url = URL(string: "\(baseURL)/item/\(id).json")!
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(HNComment.self, from: data)
+    }
+}
+
 
 // MARK: - Root
 
