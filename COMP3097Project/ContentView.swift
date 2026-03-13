@@ -32,6 +32,20 @@ struct HNComment: Identifiable, Decodable {
     var isVisible: Bool {
         deleted != true && dead != true && text != nil && by != nil
     }
+
+    
+    var cleanText: String {
+        guard let text = text else { return "" }
+        var result = text
+        result = result.replacingOccurrences(of: "<p>", with: "\n\n")
+        result = result.replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
+        result = result.replacingOccurrences(of: "&gt;", with: ">")
+        result = result.replacingOccurrences(of: "&lt;", with: "<")
+        result = result.replacingOccurrences(of: "&amp;", with: "&")
+        result = result.replacingOccurrences(of: "&#x27;", with: "'")
+        result = result.replacingOccurrences(of: "&quot;", with: "\"")
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }
 
 
