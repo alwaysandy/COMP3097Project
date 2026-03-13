@@ -159,6 +159,57 @@ class ArticlesViewModel: ObservableObject {
     }
 }
 
+struct ArticlesView: View {
+    @StateObject private var vm = ArticlesViewModel()
+
+    var body: some View {
+        NavigationStack {
+            List(vm.stories) { story in
+                ArticleRow(story: story, onTap: { vm.selectStory(story) })
+                    .listRowSeparator(.hidden)
+            }
+            .listStyle(.plain)
+            .navigationTitle("Hacker News")
+            .refreshable { await vm.load() }
+            .fullScreenCover(item: $vm.selectedDestination) { dest in
+                SafariView(url: dest.url).ignoresSafeArea()
+            }
+            .task { await vm.load() }
+        }
+    }
+}
+
+struct ArticleRow: View {
+    let story: HNStory
+    let onTap: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(story.title).font(.headline)
+            HStack {
+                Text("\(story.score) pts · \(story.by)").foregroundStyle(.secondary).font(.caption)
+                Spacer()
+                NavigationLink {
+                    CommentsView(story: story)
+                } label: {
+                    Image(systemName: "bubble.right")
+                        .font(.caption)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
+    }
+}
+
 
 struct ReadingListView: View {
     var body: some View {
