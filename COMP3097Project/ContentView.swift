@@ -21,6 +21,20 @@ struct HNStory: Identifiable, Decodable {
     }
 }
 
+struct HNComment: Identifiable, Decodable {
+    let id: Int
+    let by: String?
+    let text: String?
+    let kids: [Int]?
+    let deleted: Bool?
+    let dead: Bool?
+
+    var isVisible: Bool {
+        deleted != true && dead != true && text != nil && by != nil
+    }
+}
+
+
 // MARK: - Root
 
 struct ContentView: View {
