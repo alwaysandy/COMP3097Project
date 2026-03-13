@@ -1,6 +1,26 @@
 import SwiftUI
 import SafariServices
 
+// MARK: - Models
+
+struct HNStory: Identifiable, Decodable {
+    let id: Int
+    let title: String
+    let url: String?
+    let score: Int
+    let by: String
+    let kids: [Int]?
+
+    var articleURL: URL? {
+        guard let urlString = url else { return nil }
+        return URL(string: urlString)
+    }
+
+    var hackerNewsURL: URL {
+        URL(string: "https://news.ycombinator.com/item?id=\(id)")!
+    }
+}
+
 // MARK: - Root
 
 struct ContentView: View {
