@@ -72,6 +72,36 @@ class HackerNewsService: ObservableObject{
         let (data, _) = try await URLSession.shared.data(from: url)
         return try JSONDecoder().decode(HNComment.self, from: data)
     }
+
+    func fetchTopStories(limit: Int = 20) async throws -> [HNStory] {
+        let ids = try await fetchTopStoryIDs(limit: limit)
+        return try await withThrowingTaskGroup(of: HNStory?.self) { group in
+            for id in ids {
+                group.addTask { try? await self.fetchStory(id: id) }
+            }
+            var stories: [HNStory] = []
+            for try await story in group {
+                if let story { stories.append(story) }
+            }
+            // flip to [storyid:rank]
+            let idOrder = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($1, $0) })
+            return stories.sorted { (idOrder[$0.id] ?? 0) < (idOrder[$1.id] ?? 0) }
+        }
+    }
+
+     func fetchComments(ids: [Int]) async throws -> [HNComment] {
+        try await withThrowingTaskGroup(of: HNComment?.self) { group in
+            for id in ids {
+                group.addTask { try? await self.fetchComment(id: id) }
+            }
+            var comments: [HNComment] = []
+            for try await comment in group {
+                if let comment, comment.isVisible { comments.append(comment) }
+            }
+            let idOrder = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($1, $0) })
+            return comments.sorted { (idOrder[$0.id] ?? 0) < (idOrder[$1.id] ?? 0) }
+        }
+    }
 }
 
 
