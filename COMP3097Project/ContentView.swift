@@ -253,17 +253,30 @@ struct SettingsView: View {
 
 // MARK: - Comments
 
+@MainActor
+class CommentsViewModel: ObservableObject {
+    @Published var comments: [HNComment] = []
+
+    func load(kids: [Int]) async {
+        let ids = Array(kids.prefix(20))
+        comments = (try? await HackerNewsService.shared.fetchComments(ids: ids)) ?? []
+    }
+}
+
 struct CommentsView: View {
-    var title: String
+    let story: HNStory
+    @StateObject private var vm = CommentsViewModel()
+
     var body: some View {
-        VStack(alignment: .leading) {
-            Text(title)
-                .font(.headline)
-            Text("This is a comment!")
-            Spacer()
+        List(vm.comments) { comment in
+            VStack(alignment: .leading, spacing: 4) {
+                Text(comment.by ?? "").font(.caption).bold().foregroundStyle(.orange)
+                Text(comment.cleanText).font(.subheadline)
+            }
+            .padding(.vertical, 4)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.leading, 16)
+        .navigationTitle("Comments")
+        .task { await vm.load(kids: story.kids ?? []) }
     }
 }
 
