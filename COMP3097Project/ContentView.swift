@@ -43,6 +43,7 @@ struct HNComment: Identifiable, Decodable {
         result = result.replacingOccurrences(of: "&lt;", with: "<")
         result = result.replacingOccurrences(of: "&amp;", with: "&")
         result = result.replacingOccurrences(of: "&#x27;", with: "'")
+        result = result.replacingOccurrences(of: "&#x2F;", with: "/")
         result = result.replacingOccurrences(of: "&quot;", with: "\"")
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
