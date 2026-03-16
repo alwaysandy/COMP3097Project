@@ -190,7 +190,9 @@ struct ArticleRow: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(story.title).font(.headline)
             HStack {
-                Text("\(story.score) pts · \(story.by)").foregroundStyle(.secondary).font(.caption)
+                Text("\(story.score) pts · \(story.by)")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
                 Spacer()
                 NavigationLink {
                     CommentsView(story: story)
@@ -206,10 +208,13 @@ struct ArticleRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .contentShape(Rectangle())
-        .onTapGesture { onTap() }
+        .background {
+            Color(.secondarySystemBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .onTapGesture {
+                    onTap()
+                }
+        }
     }
 }
 
