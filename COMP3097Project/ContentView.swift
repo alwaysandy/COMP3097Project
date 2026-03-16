@@ -109,20 +109,22 @@ class HackerNewsService: ObservableObject{
 // MARK: - Root
 
 struct ContentView: View {
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
+    
     var body: some View {
         TabView {
             ArticlesView()
                 .tabItem {
                     Label("Articles", systemImage: "newspaper.fill")
-                }
+                }.preferredColorScheme(darkModeEnabled ? .dark : .light)
             ReadingListView()
                 .tabItem {
                     Label("Reading List", systemImage: "house.fill")
-                }
+                }.preferredColorScheme(darkModeEnabled ? .dark : .light)
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gear.circle.fill")
-                }
+                }.preferredColorScheme(darkModeEnabled ? .dark : .light)
         }
     }
 }
@@ -226,7 +228,8 @@ struct ReadingListView: View {
 
 struct SettingsView: View {
     @State private var agreed = false
-    @State private var dark = false
+    
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = false;
 
     var body: some View {
         VStack {
@@ -239,7 +242,7 @@ struct SettingsView: View {
             .background(Color.gray.opacity(0.2))
             .cornerRadius(12)
             HStack {
-                Toggle("Toggle Dark Mode", isOn: $dark)
+                Toggle("Toggle Dark Mode", isOn: $darkModeEnabled)
                     .padding()
             }
             .background(Color.gray.opacity(0.2))
