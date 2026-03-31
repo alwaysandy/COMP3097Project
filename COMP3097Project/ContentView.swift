@@ -1,3 +1,4 @@
+import CoreData
 import SwiftUI
 import SafariServices
 
@@ -43,6 +44,7 @@ struct HNComment: Identifiable, Decodable {
         result = result.replacingOccurrences(of: "&lt;", with: "<")
         result = result.replacingOccurrences(of: "&amp;", with: "&")
         result = result.replacingOccurrences(of: "&#x27;", with: "'")
+        result = result.replacingOccurrences(of: "&#34;", with: "\"")
         result = result.replacingOccurrences(of: "&#x2F;", with: "/")
         result = result.replacingOccurrences(of: "&quot;", with: "\"")
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -89,6 +91,21 @@ class HackerNewsService: ObservableObject{
             return stories.sorted { (idOrder[$0.id] ?? 0) < (idOrder[$1.id] ?? 0) }
         }
     }
+    
+    func fetchSavedStories(limit: Int = 20, ids: [Int]) async throws -> [HNStory] {
+        return try await withThrowingTaskGroup(of: HNStory?.self) { group in
+            for id in ids {
+                group.addTask { try? await self.fetchStory(id: id) }
+            }
+            var stories: [HNStory] = []
+            for try await story in group {
+                if let story { stories.append(story) }
+            }
+            // flip to [storyid:rank]
+            let idOrder = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($1, $0) })
+            return stories.sorted { (idOrder[$0.id] ?? 0) < (idOrder[$1.id] ?? 0) }
+        }
+    }
 
      func fetchComments(ids: [Int]) async throws -> [HNComment] {
         try await withThrowingTaskGroup(of: HNComment?.self) { group in
@@ -109,6 +126,7 @@ class HackerNewsService: ObservableObject{
 // MARK: - Root
 
 struct ContentView: View {
+    @Environment(\.managedObjectContext) private var viewContext
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     
     var body: some View {
@@ -117,7 +135,7 @@ struct ContentView: View {
                 .tabItem {
                     Label("Articles", systemImage: "newspaper.fill")
                 }.preferredColorScheme(darkModeEnabled ? .dark : .light)
-            ReadingListView()
+            ReadingListView(context: viewContext)
                 .tabItem {
                     Label("Reading List", systemImage: "house.fill")
                 }.preferredColorScheme(darkModeEnabled ? .dark : .light)
@@ -218,13 +236,69 @@ struct ArticleRow: View {
     }
 }
 
+@MainActor
+class ReadingListViewModel: ObservableObject {
+    private var managedObjectContext: NSManagedObjectContext
+    
+    @Published var stories: [HNStory] = []
+    @Published var selectedDestination: WebDestination?
+    @Published var readingList: [Article] = []
+    
+    init(context: NSManagedObjectContext) {
+        self.managedObjectContext = context
+    }
+    
+    func fetchData() {
+        let request: NSFetchRequest<Article> = Article.fetchRequest()
+        // Add sort descriptors as needed
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Article.article_id, ascending: true)]
+        
+        do {
+            self.readingList = try managedObjectContext.fetch(request)
+        } catch {
+            print("Error fetching items: \(error.localizedDescription)")
+        }
+    }
+
+    func load() async {
+        fetchData()
+        let ids = readingList.map { Int($0.article_id) }
+        if ids.isEmpty {
+            self.stories = []
+            return
+        }
+        
+        stories = (try? await HackerNewsService.shared.fetchSavedStories(ids: ids)) ?? []
+    }
+
+    func selectStory(_ story: HNStory) {
+        selectedDestination = WebDestination(url: story.articleURL ?? story.hackerNewsURL)
+    }
+}
 
 struct ReadingListView: View {
+    @StateObject private var vm: ReadingListViewModel
+    
+    init(context: NSManagedObjectContext) {
+        _vm = StateObject(wrappedValue: ReadingListViewModel(context: context))
+    }
+
     var body: some View {
-        VStack {
-            Text("Reading List")
-                .font(.title)
-            Spacer()
+        NavigationStack {
+            List(vm.stories) { story in
+                ArticleRow(story: story, onTap: { vm.selectStory(story) })
+                    .listRowSeparator(.hidden)
+            }
+            .listStyle(.plain)
+            .navigationTitle("Reading List")
+            .refreshable {
+                vm.fetchData()
+                await vm.load()
+            }
+            .fullScreenCover(item: $vm.selectedDestination) { dest in
+                SafariView(url: dest.url).ignoresSafeArea()
+            }
+            .task { await vm.load() }
         }
     }
 }
