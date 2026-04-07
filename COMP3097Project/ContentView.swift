@@ -340,27 +340,40 @@ struct SettingsView: View {
 @MainActor
 class CommentsViewModel: ObservableObject {
     @Published var comments: [HNComment] = []
+    @Published var isLoading: Bool = false
 
-    func load(kids: [Int], level: Int = 0) async {
-        let fetched = (try? await HackerNewsService.shared.fetchComments(ids: kids)) ?? []
+    func load(kids: [Int]) async {
+        guard !isLoading else { return }
+        isLoading = true
 
-        for comment in fetched where comment.isVisible {
+        let allComments = await fetchTree(ids: kids, level: 0)
+        self.comments = allComments
+        isLoading = false
+
+    }
+    private func fetchTree(ids: [Int], level: Int) async -> [HNComment] {
+        let fetched = (try? await HackerNewsService.shared.fetchComments(ids: ids)) ?? []
+
+        var results: [HNComment] = []
+
+        for comment in fetched {
             let commentWithLevel = HNComment(
-                            id: comment.id,
-                            by: comment.by,
-                            text: comment.text,
-                            kids: comment.kids,
-                            deleted: comment.deleted,
-                            dead: comment.dead,
-                            level: level
-                        )
-
-            self.comments.append(commentWithLevel)
+                id: comment.id,
+                by: comment.by,
+                text: comment.text,
+                kids: comment.kids,
+                deleted: comment.deleted,
+                dead: comment.dead,
+                level: level
+            )
+            results.append(commentWithLevel)
 
             if let childIds = comment.kids {
-                await load(kids: childIds, level: level + 1)
+                let children = await fetchTree(ids: childIds, level: level + 1)
+                results.append(contentsOf: children)
             }
         }
+        return results
     }
 }
 
