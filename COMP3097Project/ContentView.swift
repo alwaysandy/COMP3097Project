@@ -29,12 +29,13 @@ struct HNComment: Identifiable, Decodable {
     let kids: [Int]?
     let deleted: Bool?
     let dead: Bool?
+    let level: Int?
 
     var isVisible: Bool {
         deleted != true && dead != true && text != nil && by != nil
     }
 
-    
+
     var cleanText: String {
         guard let text = text else { return "" }
         var result = text
@@ -91,7 +92,7 @@ class HackerNewsService: ObservableObject{
             return stories.sorted { (idOrder[$0.id] ?? 0) < (idOrder[$1.id] ?? 0) }
         }
     }
-    
+
     func fetchSavedStories(limit: Int = 20, ids: [Int]) async throws -> [HNStory] {
         return try await withThrowingTaskGroup(of: HNStory?.self) { group in
             for id in ids {
@@ -128,7 +129,7 @@ class HackerNewsService: ObservableObject{
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
-    
+
     var body: some View {
         TabView {
             ArticlesView()
@@ -239,20 +240,20 @@ struct ArticleRow: View {
 @MainActor
 class ReadingListViewModel: ObservableObject {
     private var managedObjectContext: NSManagedObjectContext
-    
+
     @Published var stories: [HNStory] = []
     @Published var selectedDestination: WebDestination?
     @Published var readingList: [Article] = []
-    
+
     init(context: NSManagedObjectContext) {
         self.managedObjectContext = context
     }
-    
+
     func fetchData() {
         let request: NSFetchRequest<Article> = Article.fetchRequest()
         // Add sort descriptors as needed
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Article.article_id, ascending: true)]
-        
+
         do {
             self.readingList = try managedObjectContext.fetch(request)
         } catch {
@@ -267,7 +268,7 @@ class ReadingListViewModel: ObservableObject {
             self.stories = []
             return
         }
-        
+
         stories = (try? await HackerNewsService.shared.fetchSavedStories(ids: ids)) ?? []
     }
 
@@ -278,7 +279,7 @@ class ReadingListViewModel: ObservableObject {
 
 struct ReadingListView: View {
     @StateObject private var vm: ReadingListViewModel
-    
+
     init(context: NSManagedObjectContext) {
         _vm = StateObject(wrappedValue: ReadingListViewModel(context: context))
     }
@@ -307,7 +308,7 @@ struct ReadingListView: View {
 
 struct SettingsView: View {
     @State private var agreed = false
-    
+
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false;
 
     var body: some View {
@@ -340,9 +341,26 @@ struct SettingsView: View {
 class CommentsViewModel: ObservableObject {
     @Published var comments: [HNComment] = []
 
-    func load(kids: [Int]) async {
-        let ids = Array(kids.prefix(20))
-        comments = (try? await HackerNewsService.shared.fetchComments(ids: ids)) ?? []
+    func load(kids: [Int], level: Int = 0) async {
+        let fetched = (try? await HackerNewsService.shared.fetchComments(ids: kids)) ?? []
+
+        for comment in fetched where comment.isVisible {
+            let commentWithLevel = HNComment(
+                            id: comment.id,
+                            by: comment.by,
+                            text: comment.text,
+                            kids: comment.kids,
+                            deleted: comment.deleted,
+                            dead: comment.dead,
+                            level: level
+                        )
+
+            self.comments.append(commentWithLevel)
+
+            if let childIds = comment.kids {
+                await load(kids: childIds, level: level + 1)
+            }
+        }
     }
 }
 
@@ -357,6 +375,15 @@ struct CommentsView: View {
                 Text(comment.cleanText).font(.subheadline)
             }
             .padding(.vertical, 4)
+            .padding(.leading, CGFloat((comment.level ?? 0) * 16))
+            .overlay(alignment: .leading) {
+                if (comment.level ?? 0) > 0 {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 1)
+                        .padding(.leading, CGFloat((comment.level ?? 0) * 16) - 8)
+                }
+            }
         }
         .navigationTitle("Comments")
         .task { await vm.load(kids: story.kids ?? []) }
