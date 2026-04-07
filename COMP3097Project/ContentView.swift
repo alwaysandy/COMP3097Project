@@ -368,13 +368,13 @@ struct CommentsView: View {
 
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var vm: CommentsViewModel = CommentsViewModel()
-    @FetchRequest private var favoritedArticles: FetchedResults<Article>
+    @FetchRequest private var savedArticles: FetchedResults<Article>
 
-    private var isFavorited: Bool { !favoritedArticles.isEmpty }
+    private var isInReadingList: Bool { !savedArticles.isEmpty }
 
     init(story: HNStory) {
         self.story = story
-        _favoritedArticles = FetchRequest(
+        _savedArticles = FetchRequest(
             entity: Article.entity(),
             sortDescriptors: [],
             predicate: NSPredicate(format: "article_id == %d", story.id)
@@ -412,7 +412,7 @@ struct CommentsView: View {
                 }
                 try? viewContext.save()
             } label: {
-                Image(systemName: isFavorited ? "heart.fill" : "heart")
+                Image(systemName: isInReadingList ? "heart.fill" : "heart")
             }
             
         }
