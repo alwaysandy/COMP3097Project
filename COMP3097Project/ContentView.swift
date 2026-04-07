@@ -400,7 +400,7 @@ struct CommentsView: View {
         }
         .navigationTitle("Comments")
         .toolbar {
-            Button(isFavorited ? "Unfavourite" : "Favourite") {
+            Button {
                 let request = Article.fetchRequest()
                 request.predicate = NSPredicate(format: "article_id == %d", story.id)
                 
@@ -411,7 +411,10 @@ struct CommentsView: View {
                     article.article_id = Int32(story.id)
                 }
                 try? viewContext.save()
+            } label: {
+                Image(systemName: isFavorited ? "heart.fill" : "heart")
             }
+            
         }
         .task { await vm.load(kids: story.kids ?? []) }
     }
