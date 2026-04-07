@@ -343,7 +343,6 @@ class CommentsViewModel: ObservableObject {
 
     func load(kids: [Int], level: Int = 0) async {
         let fetched = (try? await HackerNewsService.shared.fetchComments(ids: kids)) ?? []
-
         for comment in fetched where comment.isVisible {
             let commentWithLevel = HNComment(
                             id: comment.id,
@@ -366,7 +365,21 @@ class CommentsViewModel: ObservableObject {
 
 struct CommentsView: View {
     let story: HNStory
-    @StateObject private var vm = CommentsViewModel()
+
+    @Environment(\.managedObjectContext) private var viewContext
+    @StateObject private var vm: CommentsViewModel = CommentsViewModel()
+    @FetchRequest private var favoritedArticles: FetchedResults<Article>
+
+    private var isFavorited: Bool { !favoritedArticles.isEmpty }
+
+    init(story: HNStory) {
+        self.story = story
+        _favoritedArticles = FetchRequest(
+            entity: Article.entity(),
+            sortDescriptors: [],
+            predicate: NSPredicate(format: "article_id == %d", story.id)
+        )
+    }
 
     var body: some View {
         List(vm.comments) { comment in
@@ -386,6 +399,20 @@ struct CommentsView: View {
             }
         }
         .navigationTitle("Comments")
+        .toolbar {
+            Button(isFavorited ? "Unfavourite" : "Favourite") {
+                let request = Article.fetchRequest()
+                request.predicate = NSPredicate(format: "article_id == %d", story.id)
+                
+                if let existing = try? viewContext.fetch(request), !existing.isEmpty {
+                    existing.forEach { viewContext.delete($0) }
+                } else {
+                    let article = Article(context: viewContext)
+                    article.article_id = Int32(story.id)
+                }
+                try? viewContext.save()
+            }
+        }
         .task { await vm.load(kids: story.kids ?? []) }
     }
 }
