@@ -355,7 +355,7 @@ class CommentsViewModel: ObservableObject {
                             level: level
                         )
 
-            self.comments.append(comment)
+            self.comments.append(commentWithLevel)
 
             if let childIds = comment.kids {
                 await load(kids: childIds, level: level + 1)
